@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NHLS PDF Dashboard</title>
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #005f3c;
+      --secondary-color: #007d4a;
+      --light-bg: #e0f2f1;
+      --card-bg: #ffffff;
+      --text-dark: #333333;
+      --text-light: #777777;
+      --success: #28a745;
+      --warning: #ffc107;
+      --error: #dc3545;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--light-bg);
+      color: var(--text-dark);
+      line-height: 1.6;
+    }
+    
+    .header {
+      background: var(--primary-color);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .header h1 {
+      font-weight: 500;
+      font-size: 2.2rem;
+    }
+    
+    .container {
+      padding: 25px;
+      max-width: 1400px;
+      margin: 25px auto;
+      background: var(--card-bg);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border-radius: 12px;
+    }
+    
+    .filter-section {
+      background: #f8fdfc;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      border: 1px solid #e0e9e8;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .filter-group label {
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--primary-color);
+      font-size: 1rem;
+    }
+    
+    input, select {
+      padding: 12px 15px;
+      border: 1px solid #cce4e0;
+      border-radius: 6px;
+      font-size: 1rem;
+      background: white;
+      transition: all 0.3s ease;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 95, 60, 0.1);
+    }
+    
+    .btn {
+      padding: 12px 18px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn i {
+      font-size: 1.1rem;
+    }
+    
+    .btn-secondary {
+      background: #5a6268;
+    }
+    
+    .btn-secondary:hover {
+      background: #6c757d;
+    }
+    
+    .btn-warning {
+      background: var(--warning);
+      color: #333;
+    }
+    
+    .btn-warning:hover {
+      background: #e0a800;
+    }
+    
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    
+    #statusBar {
+      padding: 15px;
+      font-weight: 600;
+      color: var(--primary-color);
+      background: #edf9f7;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .progress-container {
+      flex-grow: 1;
+      height: 12px;
+      background: #d1e8e3;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 0 15px;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: var(--primary-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .dashboard-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin: 25px 0;
+    }
+    
+    @media (max-width: 1000px) {
+      .dashboard-section {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .chart-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+    
+    .chart-container h3 {
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      font-weight: 500;
+      font-size: 1.3rem;
+    }
+    
+    .chart-wrapper {
+      height: 350px;
+      position: relative;
+    }
+    
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    
+    #calendar {
+      margin: 20px 0 30px;
+      min-height: 500px;
+    }
+    
+    .fc .fc-toolbar-title {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 250px;
+      margin-top: 10px;
+      padding: 15px;
+      border: 1px solid #cce4e0;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    
+    .performance-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      color: var(--text-light);
+      font-size: 0.9rem;
+    }
+    
+    .stats-card {
+      background: #f8fdfc;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary-color);
+      margin-bottom: 15px;
+    }
+    
+    .stats-card h4 {
+      font-size: 1rem;
+      color: var(--text-light);
+      margin-bottom: 5px;
+    }
+    
+    .stats-card p {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .highlight {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>NHLS PDF Dashboard</h1>
+  <p>Advanced analytics for PDF processing with optimized performance</p>
+</div>
+
+<div class="container">
+  <div class="filter-section">
+    <div class="filter-group">
+      <label for="folderPicker">Select PDF Folder:</label>
+      <input type="file" id="folderPicker" webkitdirectory directory multiple>
+      <div class="performance-info">
+        <span>Optimized for large directories</span>
+      </div>
+    </div>
+    
+    <div class="filter-group">
+      <label for="reportType">Report Type:</label>
+      <select id="reportType">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="labFilter">Filter by Lab:</label>
+      <select id="labFilter" onchange="filterLab()">
+        <option value="ALL">All Labs</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="dateRange">Date Range:</label>
+      <select id="dateRange" onchange="filterDateRange()">
+        <option value="all">All Dates</option>
+        <option value="last7">Last 7 Days</option>
+        <option value="last30">Last 30 Days</option>
+        <option value="last90">Last 90 Days</option>
+        <option value="lastyear">Last 12 Months</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="filter-controls">
+    <button class="btn" onclick="processFiles()">
+      <i class="fas fa-chart-line"></i> Generate Dashboard
+    </button>
+    <button class="btn" onclick="exportReport()">
+      <i class="fas fa-file-alt"></i> Export TXT
+    </button>
+    <button class="btn" onclick="exportToExcel()">
+      <i class="fas fa-file-excel"></i> Export Excel
+    </button>
+    <button class="btn btn-secondary" onclick="resetFilters()">
+      <i class="fas fa-redo"></i> Reset Filters
+    </button>
+  </div>
+  
+  <div id="statusBar">
+    <span>Ready to process files</span>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <span id="fileCount">0 files</span>
+  </div>
+  
+  <div class="stats-grid">
+    <div class="stats-card">
+      <h4>Total PDFs Processed</h4>
+      <p id="totalPdfs">0</p>
+    </div>
+    <div class="stats-card">
+      <h4>Unique Labs</h4>
+      <p id="uniqueLabs">0</p>
+    </div>
+    <div class="stats-card">
+      <h4>Time Periods</h4>
+      <p id="timePeriods">0</p>
+    </div>
+    <div class="stats-card">
+      <h4>Processing Time</h4>
+      <p id="processingTime">0ms</p>
+    </div>
+  </div>
+  
+  <div id="calendar"></div>
+  
+  <div class="dashboard-section">
+    <div class="chart-container">
+      <h3>PDF Distribution by Date</h3>
+      <div class="chart-wrapper">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <h3>PDF Counts Over Time</h3>
+      <div class="chart-wrapper">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <h3>Report Summary</h3>
+  <textarea id="reportOutput" placeholder="Report will appear here..."></textarea>
+</div>
+
+<script>
+// Global variables
+let calendar;
+let fullData = {};
+let activeLab = "ALL";
+let dateRangeFilter = "all";
+let pieChartInstance = null;
+let barChartInstance = null;
+let worker;
+let processingStartTime;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadPreferences();
+  setupWorker(); // This will now attempt to use the worker unless 'return;' is re-added
+});
+
+// Set up web worker for background processing
+function setupWorker() {
+  // worker = null; // Removed this line to enable the worker
+  // console.warn('Web Worker disabled: using main thread for processing'); // Removed this line
+  // return; // Removed this line to enable the worker
+  console.info('Attempting to setup Web Worker...');
+  if (window.Worker) {
+    worker = new Worker('data:application/javascript,' + encodeURIComponent(`
+      self.onmessage = function(e) {
+        const { files, reportType } = e.data;
+        const startTime = performance.now();
+        const result = processFilesInWorker(files, reportType);
+        const processingTime = performance.now() - startTime;
+        postMessage({ ...result, processingTime });
+      };
+      
+      // Add a basic error handler for the worker script itself
+      self.onerror = function(e) {
+          console.error("Worker error:", e.message, "at line", e.lineno, "in", e.filename);
+          // You might want to post a message back to the main thread about the error
+          postMessage({ error: true, message: "Worker encountered an error." });
+      };
+
+      function processFilesInWorker(files, reportType) {
+        const data = {};
+        let pdfCount = 0;
+        const labs = new Set();
+        const periods = new Set();
+        
+        // files passed from the main thread are not File objects, but rather plain objects
+        // with properties like name, webkitRelativePath, and lastModified.
+        // Reconstruct them as needed if full File object methods are required,
+        // but for name, path, and lastModified, they are directly accessible.
+        for (let file of files) {
+          if (file.name.toLowerCase().endsWith('.pdf')) {
+            pdfCount++;
+            const path = file.webkitRelativePath || file.name; // Use file.name if webkitRelativePath is not available (e.g., single file selection)
+            const lab = path.split('/')[1] || "Unknown";
+            const modDate = new Date(file.lastModified);
+            
+            labs.add(lab);
+            
+            let period;
+            if (reportType === 'daily') {
+              period = modDate.toISOString().split('T')[0];
+            } else if (reportType === 'weekly') {
+              const first = modDate.getDate() - modDate.getDay();
+              const weekStart = new Date(modDate.setDate(first));
+              period = weekStart.toISOString().split('T')[0];
+            } else { // monthly
+              period = modDate.getFullYear() + '-' + String(modDate.getMonth() + 1).padStart(2, '0');
+            }
+            
+            periods.add(period);
+            
+            if (!data[lab]) data[lab] = {};
+            data[lab][period] = (data[lab][period] || 0) + 1;
+          }
+        }
+        
+        return { 
+          data, 
+          pdfCount, 
+          uniqueLabs: labs.size, 
+          uniquePeriods: periods.size,
+          totalFiles: files.length 
+        };
+      }
+    `));
+    
+    worker.onmessage = function(e) {
+      if (e.data.error) {
+          setStatus(`Error from worker: ${e.data.message}`);
+          console.error("Worker message error:", e.data.message);
+          return;
+      }
+      const { data, pdfCount, uniqueLabs, uniquePeriods, processingTime, totalFiles } = e.data;
+      fullData = data;
+      
+      document.getElementById('totalPdfs').textContent = pdfCount;
+      document.getElementById('uniqueLabs').textContent = uniqueLabs;
+      document.getElementById('timePeriods').textContent = uniquePeriods;
+      document.getElementById('processingTime').textContent = `${Math.round(processingTime)}ms`;
+      
+      populateLabFilter();
+      renderDashboard(activeLab);
+      
+      setStatus(`Processed ${pdfCount} PDFs from ${totalFiles} files in ${Math.round(processingTime)}ms`);
+      document.getElementById('fileCount').textContent = `${pdfCount} PDFs`;
+      document.getElementById('progressBar').style.width = '100%';
+    };
+
+    worker.onerror = function(error) { // Added this handler
+        setStatus("Error: Web Worker encountered an unhandled error.");
+        console.error("Main thread worker onerror:", error);
+    };
+
+  } else {
+    console.warn('Web Workers are not supported in this browser. Processing will occur on the main thread.');
+  }
+}
+
+function setStatus(text) {
+  document.getElementById('statusBar').children[0].textContent = text;
+}
+
+function updateProgress(processed, total) {
+  const percent = Math.round((processed / total) * 100);
+  document.getElementById('progressBar').style.width = `${percent}%`;
+  document.getElementById('fileCount').textContent = `${processed} of ${total} files`;
+}
+
+function savePreferences() {
+  localStorage.setItem('activeLab', activeLab);
+  localStorage.setItem('dateRangeFilter', dateRangeFilter);
+  localStorage.setItem('reportType', document.getElementById('reportType').value);
+}
+
+function loadPreferences() {
+  const savedLab = localStorage.getItem('activeLab');
+  const savedDateRange = localStorage.getItem('dateRangeFilter');
+  const savedReportType = localStorage.getItem('reportType');
+  
+  if (savedLab) {
+    activeLab = savedLab;
+    document.getElementById('labFilter').value = activeLab;
+  }
+  
+  if (savedDateRange) {
+    dateRangeFilter = savedDateRange;
+    document.getElementById('dateRange').value = dateRangeFilter;
+  }
+  
+  if (savedReportType) {
+    document.getElementById('reportType').value = savedReportType;
+  }
+}
+
+function resetFilters() {
+  activeLab = "ALL";
+  dateRangeFilter = "all";
+  document.getElementById('labFilter').value = activeLab;
+  document.getElementById('dateRange').value = dateRangeFilter;
+  savePreferences();
+  
+  if (fullData && Object.keys(fullData).length > 0) {
+    renderDashboard(activeLab);
+  } else {
+    // Also clear the dashboard if there's no data
+    renderCalendar({});
+    renderPieChart({});
+    renderBarChart({});
+    displayReport({});
+    document.getElementById('totalPdfs').textContent = '0';
+    document.getElementById('uniqueLabs').textContent = '0';
+    document.getElementById('timePeriods').textContent = '0';
+    document.getElementById('processingTime').textContent = '0ms';
+    setStatus("Ready to process files");
+    document.getElementById('fileCount').textContent = "0 files";
+    document.getElementById('progressBar').style.width = '0%';
+  }
+}
+
+function filterDateRange() {
+  dateRangeFilter = document.getElementById('dateRange').value;
+  savePreferences();
+  
+  if (fullData && Object.keys(fullData).length > 0) {
+    renderDashboard(activeLab);
+  }
+}
+
+function processFiles() {
+  const files = document.getElementById('folderPicker').files;
+  const reportType = document.getElementById('reportType').value;
+  
+  if (files.length === 0) {
+    setStatus("Error: Please select a folder containing PDF files");
+    return;
+  }
+  
+  setStatus("Processing files...");
+  document.getElementById('progressBar').style.width = '0%';
+  savePreferences();
+  processingStartTime = performance.now();
+
+  // Use web worker if available
+  if (worker) {
+    // When sending File objects to a worker, only serializable properties are sent.
+    // full File objects cannot be directly transferred.
+    // Sending relevant properties like name, lastModified, and webkitRelativePath
+    const serializableFiles = Array.from(files).map(file => ({
+      name: file.name,
+      lastModified: file.lastModified,
+      webkitRelativePath: file.webkitRelativePath // This might be empty for non-folder selections
+    }));
+    worker.postMessage({ files: serializableFiles, reportType });
+  } else {
+    // Fallback to main thread processing
+    processFilesMainThread(files, reportType);
+  }
+}
+
+function processFilesMainThread(files, reportType) {
+  fullData = {};
+  const labs = new Set();
+  const periods = new Set();
+  let pdfCount = 0;
+  
+  // Process in chunks to keep UI responsive
+  const chunkSize = 2000;
+  let index = 0;
+  const totalFiles = files.length;
+  
+  function processChunk() {
+    const startIdx = index;
+    const endIdx = Math.min(index + chunkSize, totalFiles);
+    
+    for (let i = startIdx; i < endIdx; i++) {
+      const file = files[i];
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        pdfCount++;
+        const path = file.webkitRelativePath || file.name; // Fallback to file.name
+        const lab = path.split('/')[1] || "Unknown";
+        const modDate = new Date(file.lastModified);
+        
+        labs.add(lab);
+        
+        let period;
+        if (reportType === 'daily') {
+          period = modDate.toISOString().split('T')[0];
+        } else if (reportType === 'weekly') {
+          const first = modDate.getDate() - modDate.getDay();
+          const weekStart = new Date(modDate.setDate(first));
+          period = weekStart.toISOString().split('T')[0];
+        } else { // monthly
+          period = modDate.getFullYear() + '-' + String(modDate.getMonth() + 1).padStart(2, '0');
+        }
+        
+        periods.add(period);
+        
+        if (!fullData[lab]) fullData[lab] = {};
+        fullData[lab][period] = (fullData[lab][period] || 0) + 1;
+      }
+    }
+    
+    index = endIdx;
+    updateProgress(index, totalFiles);
+    
+    if (index < totalFiles) {
+      setTimeout(processChunk, 10);
+    } else {
+      const processingTime = performance.now() - processingStartTime;
+      
+      document.getElementById('totalPdfs').textContent = pdfCount;
+      document.getElementById('uniqueLabs').textContent = labs.size;
+      document.getElementById('timePeriods').textContent = periods.size;
+      document.getElementById('processingTime').textContent = `${Math.round(processingTime)}ms`;
+      
+      populateLabFilter();
+      renderDashboard(activeLab);
+      
+      setStatus(`Processed ${pdfCount} PDFs from ${totalFiles} files in ${Math.round(processingTime)}ms`);
+      document.getElementById('fileCount').textContent = `${pdfCount} PDFs`;
+    }
+  }
+  
+  processChunk();
+}
+
+function populateLabFilter() {
+  const labFilter = document.getElementById('labFilter');
+  labFilter.innerHTML = '<option value="ALL">All Labs</option>';
+  
+  // Get labs sorted alphabetically
+  const labs = Object.keys(fullData).sort();
+  
+  for (let lab of labs) {
+    const option = document.createElement('option');
+    option.value = lab;
+    option.textContent = lab;
+    labFilter.appendChild(option);
+  }
+  
+  // Set to saved preference if exists and is a valid lab
+  if (activeLab && activeLab !== "ALL" && labs.includes(activeLab)) {
+    labFilter.value = activeLab;
+  } else {
+    // If the saved activeLab is no longer valid, reset to ALL
+    activeLab = "ALL";
+    labFilter.value = activeLab;
+    savePreferences();
+  }
+}
+
+function filterLab() {
+  activeLab = document.getElementById('labFilter').value;
+  savePreferences();
+  renderDashboard(activeLab);
+}
+
+function applyDateRangeFilter(data) {
+  if (dateRangeFilter === "all") return {...data};
+
+  const today = new Date();
+  const filteredData = {};
+  
+  // Calculate cutoff date based on selected range
+  let cutoffDate = new Date(today);
+  cutoffDate.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
+  switch(dateRangeFilter) {
+    case "last7":
+      cutoffDate.setDate(today.getDate() - 7);
+      break;
+    case "last30":
+      cutoffDate.setDate(today.getDate() - 30);
+      break;
+    case "last90":
+      cutoffDate.setDate(today.getDate() - 90);
+      break;
+    case "lastyear":
+      cutoffDate.setFullYear(today.getFullYear() - 1);
+      break;
+  }
+  
+  // Filter the data
+  for (let dateStr in data) {
+    // Parse date strings, handling YYYY-MM and YYYY-MM-DD
+    let date;
+    if (dateStr.length === 7) { // YYYY-MM
+      date = new Date(dateStr + '-01'); // Treat as first day of month
+    } else { // YYYY-MM-DD
+      date = new Date(dateStr);
+    }
+    date.setHours(0, 0, 0, 0); // Normalize event date to start of day for comparison
+
+    if (date >= cutoffDate) {
+      filteredData[dateStr] = data[dateStr];
+    }
+  }
+  
+  return filteredData;
+}
+
+function renderDashboard(lab) {
+  let combined = {};
+  
+  // Combine data based on lab selection
+  if (lab === "ALL") {
+    for (let l in fullData) {
+      for (let date in fullData[l]) {
+        combined[date] = (combined[date] || 0) + fullData[l][date];
+      }
+    }
+  } else {
+    combined = fullData[lab] ? {...fullData[lab]} : {};
+  }
+  
+  // Apply date range filter
+  const filteredData = applyDateRangeFilter(combined);
+  
+  renderCalendar(filteredData);
+  renderPieChart(filteredData);
+  renderBarChart(filteredData);
+  displayReport(filteredData);
+}
+
+function renderCalendar(data) {
+  const calendarEl = document.getElementById('calendar');
+  if (calendar) calendar.destroy();
+
+  const events = Object.entries(data).map(([key, val]) => ({
+    title: val + " PDF(s)",
+    start: key.length === 7 ? key + '-01' : key, // Ensure full date format for consistency
+    allDay: true,
+    color: getColorForCount(val)
+  }));
+
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    events,
+    eventDidMount: function(info) {
+      info.el.title = info.event.title;
+    }
+  });
+  calendar.render();
+}
+
+function getColorForCount(count) {
+  if (count > 50) return '#004d26';
+  if (count > 20) return '#006837';
+  if (count > 10) return '#238443';
+  if (count > 5) return '#41ab5d';
+  if (count > 2) return '#78c679';
+  return '#addd8e';
+}
+
+function renderPieChart(data) {
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  
+  // Destroy previous chart if exists
+  if (pieChartInstance) {
+    pieChartInstance.destroy();
+  }
+  
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  
+  // Generate distinct colors
+  const colors = [];
+  for (let i = 0; i < labels.length; i++) {
+    colors.push(`hsl(${(i * 360) / Math.max(labels.length, 1)}, 70%, 60%)`);
+  }
+
+  pieChartInstance = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '# of PDFs',
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { 
+          position: 'right',
+          labels: {
+            boxWidth: 12,
+            font: {
+              size: 11
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: 'PDF Distribution by Date'
+        }
+      }
+    }
+  });
+}
+
+function renderBarChart(data) {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  
+  // Destroy previous chart if exists
+  if (barChartInstance) {
+    barChartInstance.destroy();
+  }
+  
+  // Sort by date
+  const sortedDates = Object.keys(data).sort();
+  const values = sortedDates.map(date => data[date]);
+  
+  barChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sortedDates,
+      datasets: [{
+        label: '# of PDFs',
+        data: values,
+        backgroundColor: '#005f3c',
+        borderColor: '#003d28',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Number of PDFs'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Date'
+          },
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
+        }
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'PDF Counts Over Time'
+        }
+      }
+    }
+  });
+}
+
+function displayReport(data) {
+  const output = document.getElementById('reportOutput');
+  const sorted = Object.keys(data).sort();
+  
+  output.value = "NHLS PDF REPORT\n";
+  output.value += "=======================\n\n";
+  
+  // Add filter info
+  output.value += `Report Type: ${document.getElementById('reportType').value.toUpperCase()}\n`;
+  output.value += `Lab: ${activeLab}\n`;
+  output.value += `Date Range: ${document.getElementById('dateRange').selectedOptions[0].text}\n`;
+  output.value += `Generated: ${new Date().toLocaleString()}\n\n`;
+  
+  // Add counts
+  output.value += "Date/Period".padEnd(20) + "Count\n";
+  output.value += "".padEnd(40, '-') + "\n";
+  
+  let total = 0;
+  for (let key of sorted) {
+    const count = data[key];
+    total += count;
+    output.value += key.padEnd(20) + count + " PDF(s)\n";
+  }
+  
+  // Add totals
+  output.value += "".padEnd(40, '-') + "\n";
+  output.value += "TOTAL:".padEnd(20) + `${total} PDF(s)\n`;
+  output.value += "=======================\n";
+}
+
+function exportReport() {
+  const content = document.getElementById('reportOutput').value;
+  if (!content || content.includes("Report will appear here")) {
+    setStatus("Error: No data to export");
+    return;
+  }
+  
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `nhls_pdf_report_${new Date().toISOString().slice(0,10)}.txt`;
+  link.click();
+  setStatus("Report exported as TXT");
+}
+
+function exportToExcel() {
+  const output = document.getElementById('reportOutput').value;
+  if (!output || output.includes("Report will appear here")) {
+    setStatus("Error: No data to export");
+    return;
+  }
+  
+  // Extract data lines (skip headers and separators)
+  const lines = output.split('\n').filter(line => 
+    line && !line.includes('===') && !line.includes('---') && 
+    !line.includes('NHLS PDF REPORT') && 
+    !line.includes('Report Type:') && 
+    !line.includes('Lab:') && 
+    !line.includes('Date Range:') && 
+    !line.includes('Generated:') &&
+    !line.includes('TOTAL:') &&
+    !line.includes('Date/Period') // Added this line to exclude the header for the data columns
+  );
+  
+  // Create CSV content
+  let csv = "Date/Period,PDF Count\n";
+  
+  for (let line of lines) {
+    const parts = line.split(/\s{2,}/).filter(p => p.trim() !== '');
+    if (parts.length >= 2) {
+      const datePeriod = parts[0].trim();
+      const count = parts[1].replace(' PDF(s)', '').trim();
+      csv += `"${datePeriod}",${count}\n`;
+    }
+  }
+  
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `nhls_pdf_report_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+  setStatus("Report exported as CSV");
+}
+</script>
+</body>
+</html>
